@@ -114,15 +114,12 @@ export interface CouponTemplateStoreRef {
 
 export interface CouponTemplate {
   templateId: number;
-  /** 구 명세는 store 객체, 일부 백엔드 응답은 storeName만 반환한다. */
-  store?: CouponTemplateStoreRef;
-  storeName?: string;
   name: string;
   discountType: DiscountType;
   discountValue: number;
   minOrderAmount: number;
   validDays: number;
-  isMine: boolean;
+  active: boolean;
 }
 
 export interface CouponTemplateListResponse {

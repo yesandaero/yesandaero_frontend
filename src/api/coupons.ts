@@ -9,8 +9,13 @@ import type {
   UseTokenResponse,
 } from './types';
 
-export function listIssuableTemplates(): Promise<CouponTemplateListResponse> {
-  return apiFetch<CouponTemplateListResponse>('/coupon-templates');
+export function listIssuableTemplates(active = true, ownerStoreId?: number): Promise<CouponTemplateListResponse> {
+  return apiFetch<CouponTemplateListResponse>('/coupon-templates', {
+    query: {
+      active: String(active),
+      ownerStoreId: ownerStoreId === undefined ? undefined : String(ownerStoreId),
+    },
+  });
 }
 
 export function createTemplate(body: CreateCouponTemplateRequest): Promise<CreateCouponTemplateResponse> {

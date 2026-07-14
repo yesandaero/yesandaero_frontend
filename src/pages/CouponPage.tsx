@@ -83,12 +83,10 @@ export function CouponPage() {
   }, []);
 
   const acceptedPartners = partnerships.filter((partnership) => partnership.status === 'ACCEPTED');
-
-  useEffect(() => {
-    if (!targetStoreId && acceptedPartners.length) {
-      setTargetStoreId(String(acceptedPartners[0].partnerStore.storeId));
-    }
-  }, [acceptedPartners, targetStoreId]);
+  const selectedPartner = acceptedPartners.find(
+    (partnership) => partnership.partnerStore.storeId === Number(targetStoreId),
+  );
+  const visibleTemplates = couponTemplates.filter((template) => template.active !== false);
 
   function issue(templateId: number) {
     if (!targetStoreId) {
@@ -108,7 +106,7 @@ export function CouponPage() {
     setAdding(true);
   }
 
-  function saveNew() {
+  async function saveNew() {
     const next = {
       name: v.required(name, '템플릿 이름'),
       discountValue:
@@ -120,14 +118,16 @@ export function CouponPage() {
     };
     setErrors(next);
     if (v.hasErrors(next)) return;
-    addCouponTemplate({
+    const created = await addCouponTemplate({
       name: name.trim(),
       discountType,
       discountValue: Number(discountValue),
       minOrderAmount: Number(minOrderAmount),
       validDays: Number(validDays),
     });
+    if (!created) return;
     setAdding(false);
+    await loadCouponTemplates();
   }
 
   return (
@@ -135,7 +135,7 @@ export function CouponPage() {
       <div className="card-head">
         <div>
           <h2>쿠폰 템플릿</h2>
-          <div className="hint">제휴를 맺으면 상대 가게의 템플릿도 보이고, 발급도 할 수 있어요. 삭제는 내 템플릿만 가능해요.</div>
+          <div className="hint">내 가게의 템플릿을 만들고, 쿠폰을 사용할 제휴 가게를 지정해 발급할 수 있어요.</div>
         </div>
         {!adding && (
           <button className="btn btn-primary btn-sm btn-icon" onClick={startAdd}>
@@ -146,7 +146,11 @@ export function CouponPage() {
 
       <div className="inline-form" style={{ marginBottom: 18 }}>
         <Field label="쿠폰 사용처 (수락된 제휴 가게)">
-          <select value={targetStoreId} onChange={(e) => setTargetStoreId(e.target.value)} disabled={partnershipsLoading}>
+          <select
+            value={targetStoreId}
+            onChange={(e) => setTargetStoreId(e.target.value)}
+            disabled={partnershipsLoading}
+          >
             <option value="">{partnershipsLoading ? '제휴 가게를 불러오는 중...' : '사용처를 선택해주세요'}</option>
             {acceptedPartners.map((partnership) => (
               <option key={partnership.partnershipId} value={partnership.partnerStore.storeId}>
@@ -194,17 +198,18 @@ export function CouponPage() {
 
       {couponTemplatesLoading ? (
         <div className="empty-state">불러오는 중이에요...</div>
-      ) : couponTemplates.length ? (
-        couponTemplates.map((t) => (
+      ) : visibleTemplates.length ? (
+        visibleTemplates.map((t) => (
           <div className="promo-card" key={t.templateId}>
             <div>
               <div className="tag">
                 {t.discountType === 'RATE' ? `${t.discountValue}% 할인` : `${fmt(t.discountValue)}원 할인`}
-                {t.isMine ? ' · 내 템플릿' : ' · 제휴 가게 템플릿'}
+                {' · 내 템플릿'}
               </div>
               <div className="label"><Icon name="tag" size={16} />{t.name}</div>
               <div className="scope">
-                {t.store?.name ?? t.storeName ?? '가게 정보 없음'} · 최소주문 {fmt(t.minOrderAmount)}원 · {t.validDays}일 유효
+                {selectedPartner ? `${selectedPartner.partnerStore.name}에서 사용 · ` : '발급 전 사용처 미지정 · '}
+                최소주문 {fmt(t.minOrderAmount)}원 · {t.validDays}일 유효
               </div>
             </div>
             <div className="promo-right">
@@ -215,18 +220,16 @@ export function CouponPage() {
               >
                 발급
               </button>
-              {t.isMine && (
-                <button className="icon-btn" title="비활성화" onClick={() => requestDeleteCouponTemplate(t.templateId)}>
-                  <Icon name="trash" size={16} />
-                </button>
-              )}
+              <button className="icon-btn" title="비활성화" onClick={() => requestDeleteCouponTemplate(t.templateId)}>
+                <Icon name="trash" size={16} />
+              </button>
             </div>
           </div>
         ))
       ) : (
         <div className="empty-state">
           <div className="empty-icon"><Icon name="tag" size={27} /></div>
-          등록된 쿠폰 템플릿이 없어요.<br />위의 '템플릿 등록' 버튼으로 첫 템플릿을 만들어보세요.
+          등록된 내 쿠폰 템플릿이 없어요.<br />위의 '템플릿 등록' 버튼으로 만들어보세요.
         </div>
       )}
 

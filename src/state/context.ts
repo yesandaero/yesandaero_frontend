@@ -30,8 +30,8 @@ export interface AppContextValue {
 
   couponTemplates: CouponTemplate[];
   couponTemplatesLoading: boolean;
-  loadCouponTemplates: () => Promise<void>;
-  addCouponTemplate: (payload: CreateCouponTemplateRequest) => Promise<void>;
+  loadCouponTemplates: (ownerStoreId?: number) => Promise<void>;
+  addCouponTemplate: (payload: CreateCouponTemplateRequest) => Promise<boolean>;
   issuedCoupon: IssueCouponResponse | null;
   issueCoupon: (templateId: number, targetStoreId: number) => Promise<void>;
   clearIssuedCoupon: () => void;

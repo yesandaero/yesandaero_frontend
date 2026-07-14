@@ -21,6 +21,7 @@ export function StoreOnboardingPage() {
   const [address, setAddress] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [phone, setPhone] = useState('');
   const [avgPrice, setAvgPrice] = useState('');
@@ -37,28 +38,83 @@ export function StoreOnboardingPage() {
     clearErr(`menu-${index}-${key}`);
   }
 
-  function captureCurrentLocation() {
+  function getPosition(options: PositionOptions): Promise<GeolocationPosition> {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, options);
+    });
+  }
+
+  function isLocationPermissionDenied(error: unknown): boolean {
+    return typeof error === 'object' && error !== null && 'code' in error && error.code === 1;
+  }
+
+  async function addressFromCoordinates(lat: number, lng: number): Promise<string> {
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      lat: String(lat),
+      lon: String(lng),
+      zoom: '18',
+      addressdetails: '1',
+      layer: 'address',
+      'accept-language': 'ko',
+    });
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) throw new Error(`Reverse geocoding failed (${response.status})`);
+    const result = (await response.json()) as { display_name?: string };
+    if (!result.display_name?.trim()) throw new Error('Address not found');
+    return result.display_name.trim();
+  }
+
+  async function captureCurrentLocation() {
+    if (!window.isSecureContext) {
+      setErrors((current) => ({ ...current, location: '현재 위치는 localhost 또는 HTTPS 주소에서만 사용할 수 있어요' }));
+      return;
+    }
     if (!navigator.geolocation) {
       setErrors((current) => ({ ...current, location: '이 브라우저에서는 위치 확인을 지원하지 않아요' }));
       return;
     }
     setLocationLoading(true);
     clearErr('location');
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setLatitude(String(coords.latitude));
-        setLongitude(String(coords.longitude));
-        setLocationLoading(false);
-      },
-      (error) => {
-        const message = error.code === error.PERMISSION_DENIED
-          ? '위치 권한을 허용해주세요'
-          : '현재 위치를 확인하지 못했어요. 잠시 후 다시 시도해주세요';
-        setErrors((current) => ({ ...current, location: message }));
-        setLocationLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-    );
+    try {
+      let position: GeolocationPosition;
+      try {
+        position = await getPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+      } catch (firstError) {
+        if (isLocationPermissionDenied(firstError)) throw firstError;
+        // GPS를 사용할 수 없는 데스크톱에서는 Wi-Fi/IP 기반 일반 위치로 다시 시도한다.
+        position = await getPosition({ enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 });
+      }
+
+      const { latitude: lat, longitude: lng, accuracy } = position.coords;
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('Invalid coordinates');
+      setLatitude(String(lat));
+      setLongitude(String(lng));
+      setLocationAccuracy(Math.round(accuracy));
+      clearErr('location');
+      try {
+        const currentAddress = await addressFromCoordinates(lat, lng);
+        setAddress(currentAddress);
+        clearErr('address');
+      } catch {
+        setErrors((current) => ({
+          ...current,
+          address: '현재 위치의 주소를 자동으로 찾지 못했어요. 주소를 직접 입력해주세요',
+        }));
+      }
+    } catch (error) {
+      const denied = isLocationPermissionDenied(error);
+      setErrors((current) => ({
+        ...current,
+        location: denied
+          ? '브라우저 주소창의 위치 권한을 허용한 뒤 다시 시도해주세요'
+          : '현재 위치를 확인하지 못했어요. 기기의 위치 서비스를 켠 뒤 다시 시도해주세요',
+      }));
+    } finally {
+      setLocationLoading(false);
+    }
   }
 
   function submit() {
@@ -134,9 +190,13 @@ export function StoreOnboardingPage() {
         </Field>
         <Field label="실제 가게 위치" error={errors.location} hint="기기의 위치 권한을 사용해 실제 좌표를 확인합니다.">
           <button type="button" className="btn btn-outline" style={{ width: '100%' }} onClick={captureCurrentLocation} disabled={locationLoading}>
-            {locationLoading ? '현재 위치 확인 중...' : latitude && longitude ? '현재 위치 다시 가져오기' : '현재 위치 가져오기'}
+            {locationLoading ? '현재 위치와 주소 확인 중...' : latitude && longitude ? '현재 위치 다시 가져오기' : '현재 위치 가져오기'}
           </button>
-          {latitude && longitude && <div className="empty-inline" style={{ marginTop: 8 }}>현재 위치가 확인됐어요.</div>}
+          {latitude && longitude && (
+            <div className="empty-inline" style={{ marginTop: 8 }}>
+              현재 위치가 확인됐어요{locationAccuracy ? ` (정확도 약 ${locationAccuracy}m)` : ''}.
+            </div>
+          )}
         </Field>
         <Field label="1인 평균 가격 (원)" error={errors.avgPrice}>
           <input type="number" placeholder="9000" min={0} step={100} value={avgPrice} onChange={(e) => { setAvgPrice(e.target.value); clearErr('avgPrice'); }} />

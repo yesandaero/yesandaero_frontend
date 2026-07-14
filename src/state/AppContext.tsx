@@ -205,10 +205,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function loadCouponTemplates() {
+  async function loadCouponTemplates(ownerStoreId?: number) {
     setCouponTemplatesLoading(true);
     try {
-      const res = await couponsApi.listIssuableTemplates();
+      const res = await couponsApi.listIssuableTemplates(true, ownerStoreId);
       setCouponTemplates(res.templates);
     } catch (e) {
       showToast(errMsg(e, '쿠폰 템플릿을 불러오지 못했어요'));
@@ -216,13 +216,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCouponTemplatesLoading(false);
     }
   }
-  async function addCouponTemplate(payload: CreateCouponTemplateRequest) {
+  async function addCouponTemplate(payload: CreateCouponTemplateRequest): Promise<boolean> {
     try {
-      await couponsApi.createTemplate(payload);
+      const created = await couponsApi.createTemplate(payload);
       showToast('쿠폰 템플릿을 등록했어요');
-      await loadCouponTemplates();
+      return Boolean(created.templateId);
     } catch (e) {
       showToast(errMsg(e, '쿠폰 템플릿 등록에 실패했어요'));
+      return false;
     }
   }
   async function issueCoupon(templateId: number, targetStoreId: number) {
