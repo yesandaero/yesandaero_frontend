@@ -27,4 +27,3 @@ export interface ConfirmDeleteTarget {
 }
 
 export type TabKey =  'store' | 'menu' | 'coupon' | 'partnership' | 'statistics';
-export type AuthMode = 'login' | 'signup';

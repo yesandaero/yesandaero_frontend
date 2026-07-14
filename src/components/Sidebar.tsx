@@ -1,18 +1,14 @@
+import { NavLink } from 'react-router-dom';
 import { Icon } from './icons/Icon';
 import { NAV } from '../data/constants';
-import type { TabKey } from '../types';
 
 export function Sidebar({
   storeName,
   storeCategory,
-  activeTab,
-  onTabChange,
   onLogout,
 }: {
   storeName: string;
   storeCategory: string;
-  activeTab: TabKey;
-  onTabChange: (tab: TabKey) => void;
   onLogout: () => void;
 }) {
   return (
@@ -23,14 +19,10 @@ export function Sidebar({
       </div>
       <div className="sidebar-nav">
         {NAV.map((n) => (
-          <button
-            key={n.key}
-            className={`nav-item ${activeTab === n.key ? 'active' : ''}`}
-            onClick={() => onTabChange(n.key)}
-          >
+          <NavLink key={n.key} to={n.path} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span className="ic"><Icon name={n.iconName} size={19} /></span>
             {n.label}
-          </button>
+          </NavLink>
         ))}
       </div>
       <div className="sidebar-foot">

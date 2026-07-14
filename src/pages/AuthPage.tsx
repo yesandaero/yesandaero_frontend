@@ -1,12 +1,15 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../state/context';
 import { Field } from '../components/Field';
+import { ROUTES } from '../data/constants';
 import * as v from '../utils/validation';
 import Logo from '../assets/Logo.png'
 
-export function AuthPage() {
-  const { authMode, setAuthMode, login, signup, authLoading } = useApp();
-  const isLogin = authMode === 'login';
+export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
+  const { login, signup, authLoading } = useApp();
+  const navigate = useNavigate();
+  const isLogin = mode === 'login';
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -18,9 +21,9 @@ export function AuthPage() {
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const clearErr = (key: string) => setErrors((e) => ({ ...e, [key]: undefined }));
 
-  function switchMode(mode: 'login' | 'signup') {
+  function switchMode(next: 'login' | 'signup') {
     setErrors({});
-    setAuthMode(mode);
+    navigate(next === 'login' ? ROUTES.login : ROUTES.signup);
   }
 
   function submitLogin() {

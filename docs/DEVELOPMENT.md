@@ -161,19 +161,35 @@ src/
 
 ---
 
-## 6. 화면 진입 흐름 (`App.tsx`)
+## 6. 라우팅 & 인증 가드 (`App.tsx`)
 
-```
-authed == false                    → AuthPage (로그인/회원가입)
-authed == true
-  ├─ storeStatus == loading/idle   → "불러오는 중"
-  ├─ storeStatus == needs-store    → StoreOnboardingPage (가게 최초 등록)
-  ├─ storeStatus == error          → 에러 안내
-  └─ storeStatus == ready          → Shell (사이드바 + 탭 화면)
-```
+`react-router-dom` 사용. 경로는 `data/constants.ts`의 `ROUTES`에서 한 곳으로 관리한다.
 
-- 로그인 성공 → `GET /stores/me` 시도 → 404(`STR_404`)면 `needs-store`로 온보딩, 성공하면 `ready`.
-- 탭 구성은 `data/constants.ts`의 `NAV`에서 관리: **가게 정보 · 메뉴 관리 · 쿠폰 관리 · 제휴 관리 · 통계**.
+| 경로 | 화면 | 접근 조건 |
+|---|---|---|
+| `/login` | 로그인 | 비로그인만 (로그인 상태면 홈으로) |
+| `/signup` | 회원가입 | 비로그인만 |
+| `/onboarding` | 가게 최초 등록 | 로그인 + 가게 미등록일 때만 |
+| `/store` | 가게 정보 (**홈**) | 로그인 필요 |
+| `/menu` | 메뉴 관리 | 로그인 필요 |
+| `/coupons` | 쿠폰 관리 | 로그인 필요 |
+| `/partnerships` | 제휴 관리 | 로그인 필요 |
+| `/statistics` | 통계 | 로그인 필요 |
+| 그 외 | → 홈으로 리다이렉트 | — |
+
+### 가드 규칙
+
+- **`ProtectedRoute`** — 미로그인이면 `/login`으로 튕긴다. 이때 원래 가려던 경로를 `state.from`에 담아두고,
+  로그인 성공 후 그 경로로 되돌려 보낸다. 로그인했지만 가게가 없으면(`needs-store`) `/onboarding`으로 보낸다.
+- **`PublicOnlyRoute`** — 이미 로그인한 사용자가 `/login`·`/signup`에 오면 홈으로 보낸다.
+- **`OnboardingRoute`** — 가게가 이미 있으면(`ready`) 홈으로 보낸다.
+- **세션 만료 처리** — 401을 받고 토큰 재발급까지 실패하면 `client.ts`가 토큰을 지우고
+  `auth:expired` 이벤트를 쏜다. `AppContext`가 이를 듣고 로그인 상태를 내리므로 **자동으로 `/login`으로 튕긴다.**
+  (api 레이어가 상태 레이어를 직접 import 하지 않도록 이벤트로 분리)
+
+로그인 성공 → `GET /stores/me` → 404(`STR_404`)면 `needs-store`(온보딩), 성공하면 `ready`.
+
+> 배포 시 주의: SPA이므로 `/store` 같은 주소로 **직접 접근·새로고침**하려면 호스팅에서 history fallback(모든 경로 → `index.html`)이 필요하다. Vite 개발 서버는 기본 지원.
 
 ---
 

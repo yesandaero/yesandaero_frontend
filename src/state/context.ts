@@ -8,15 +8,13 @@ import type {
   StoreStatistics,
   UpdateStoreRequest,
 } from '../api/types';
-import type { AuthMode, ConfirmDeleteTarget, MenuItem, StoreInfo } from '../types';
+import type { ConfirmDeleteTarget, MenuItem, StoreInfo } from '../types';
 
 export type StoreStatus = 'idle' | 'loading' | 'needs-store' | 'ready' | 'error';
 
 export interface AppContextValue {
   authed: boolean;
   authLoading: boolean;
-  authMode: AuthMode;
-  setAuthMode: (mode: AuthMode) => void;
   login: (email: string, password: string) => Promise<void>;
   signup: (payload: { username: string; email: string; password: string }) => Promise<void>;
   logout: () => void;

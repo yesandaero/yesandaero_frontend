@@ -21,6 +21,17 @@ export function clearTokens(): void {
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
+/**
+ * 세션이 만료/무효가 되어 더 이상 인증 상태를 유지할 수 없을 때 발생하는 이벤트.
+ * AppContext가 이 이벤트를 듣고 로그인 상태를 내려 로그인 화면으로 보낸다.
+ * (api 레이어가 상태 레이어를 직접 import 하지 않도록 이벤트로 분리)
+ */
+export const AUTH_EXPIRED_EVENT = 'auth:expired';
+
+function notifyAuthExpired(): void {
+  window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+}
+
 export class ApiError extends Error {
   status: number;
   /** 백엔드 에러 코드 (예: "CPN_404_01"). 있으면 UI에서 코드별 분기 가능. */
@@ -120,7 +131,9 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
       await refreshAccessToken();
       res = await doFetch();
     } catch {
+      // 재발급까지 실패 → 세션이 끝났다. 토큰을 지우고 앱에 알려 로그인 화면으로 보낸다.
       clearTokens();
+      notifyAuthExpired();
       throw new ApiError(401, '인증이 만료되었습니다. 다시 로그인해주세요.');
     }
   }

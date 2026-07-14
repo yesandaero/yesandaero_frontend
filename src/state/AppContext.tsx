@@ -4,7 +4,7 @@ import * as storeApi from '../api/store';
 import * as couponsApi from '../api/coupons';
 import * as partnershipsApi from '../api/partnerships';
 import * as statisticsApi from '../api/statistics';
-import { ApiError, clearTokens, getAccessToken, setTokens } from '../api/client';
+import { ApiError, AUTH_EXPIRED_EVENT, clearTokens, getAccessToken, setTokens } from '../api/client';
 import type {
   CouponTemplate,
   CreateCouponTemplateRequest,
@@ -14,7 +14,7 @@ import type {
   StoreStatistics,
   UpdateStoreRequest,
 } from '../api/types';
-import type { AuthMode, ConfirmDeleteTarget, MenuItem, StoreInfo } from '../types';
+import type { ConfirmDeleteTarget, MenuItem, StoreInfo } from '../types';
 import { AppContext, type StoreStatus } from './context';
 
 const initialMenu: MenuItem[] = [
@@ -31,7 +31,6 @@ function errMsg(e: unknown, fallback: string): string {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [authed, setAuthed] = useState(() => !!getAccessToken());
   const [authLoading, setAuthLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<AuthMode>('login');
 
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [storeStatus, setStoreStatus] = useState<StoreStatus>('idle');
@@ -84,6 +83,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 토큰 만료/무효(401 + 재발급 실패)로 세션이 끝나면 로그인 화면으로 보낸다.
+  useEffect(() => {
+    function onAuthExpired() {
+      resetSession();
+      showToast('로그인이 만료됐어요. 다시 로그인해주세요');
+    }
+    window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function login(email: string, password: string) {
     setAuthLoading(true);
     try {
@@ -115,16 +125,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  function logout() {
-    authApi.logout().catch(() => {});
+  /** 로그인 상태와 관련 데이터를 모두 비운다 (수동 로그아웃 / 세션 만료 공용) */
+  function resetSession() {
     clearTokens();
     setAuthed(false);
-    setAuthMode('login');
     setStore(null);
     setStoreStatus('idle');
     setCouponTemplates([]);
     setPartnerships([]);
     setStatistics(null);
+  }
+
+  function logout() {
+    authApi.logout().catch(() => {});
+    resetSession();
   }
 
   async function registerStore(payload: RegisterStoreRequest) {
@@ -298,8 +312,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       value={{
         authed,
         authLoading,
-        authMode,
-        setAuthMode,
         login,
         signup,
         logout,
