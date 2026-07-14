@@ -338,10 +338,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     try {
       await couponsApi.deactivateTemplate(id);
-      setCouponTemplates((list) => list.filter((t) => t.templateId !== id));
-      showToast('쿠폰 템플릿을 삭제했어요');
+      showToast('쿠폰 템플릿을 비활성화했어요');
+      await loadCouponTemplates();
     } catch (e) {
-      showToast(errMsg(e, '쿠폰 템플릿 삭제에 실패했어요'));
+      showToast(errMsg(e, '쿠폰 템플릿 비활성화에 실패했어요'));
     }
   }
 

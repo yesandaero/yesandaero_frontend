@@ -216,7 +216,7 @@ export function CouponPage() {
                 발급
               </button>
               {t.isMine && (
-                <button className="icon-btn" title="삭제" onClick={() => requestDeleteCouponTemplate(t.templateId)}>
+                <button className="icon-btn" title="비활성화" onClick={() => requestDeleteCouponTemplate(t.templateId)}>
                   <Icon name="trash" size={16} />
                 </button>
               )}

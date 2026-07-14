@@ -1,6 +1,7 @@
 import { apiFetch } from './client';
 import type {
   CouponTemplateListResponse,
+  CouponTemplate,
   CreateCouponTemplateRequest,
   CreateCouponTemplateResponse,
   IssueCouponRequest,
@@ -16,8 +17,8 @@ export function createTemplate(body: CreateCouponTemplateRequest): Promise<Creat
   return apiFetch<CreateCouponTemplateResponse>('/coupon-templates', { method: 'POST', body });
 }
 
-export function deactivateTemplate(templateId: number): Promise<void> {
-  return apiFetch<void>(`/coupon-templates/${templateId}`, { method: 'PATCH', body: { active: false } });
+export function deactivateTemplate(templateId: number): Promise<CouponTemplate> {
+  return apiFetch<CouponTemplate>(`/coupon-templates/${templateId}`, { method: 'PATCH', body: { active: false } });
 }
 
 export function issueCoupon(body: IssueCouponRequest): Promise<IssueCouponResponse> {

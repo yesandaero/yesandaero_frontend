@@ -18,6 +18,14 @@ export default defineConfig(({ mode }) => {
           headers: {
             'ngrok-skip-browser-warning': 'true',
           },
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq) => {
+              // 브라우저의 localhost Origin을 백엔드까지 전달하면 Spring CORS가
+              // 서버 간 프록시 요청을 교차 출처 요청으로 오인해 403을 반환한다.
+              proxyReq.removeHeader('origin')
+              proxyReq.removeHeader('referer')
+            })
+          },
           // 브라우저의 /api/auth/signup 요청을 명세의 /auth/signup으로 전달한다.
           rewrite: (path) => path.replace(/^\/api/, ''),
         },

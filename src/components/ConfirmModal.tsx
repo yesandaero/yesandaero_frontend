@@ -3,7 +3,7 @@ import type { ConfirmDeleteTarget } from '../types';
 
 const VERB: Record<ConfirmDeleteTarget['type'], { action: string; desc: string; icon: 'trash' | 'partnership' }> = {
   partnership: { action: '해지', desc: '해지 후에도 이미 발급된 쿠폰은 유효기간까지 사용할 수 있어요.', icon: 'partnership' },
-  'coupon-template': { action: '삭제', desc: '삭제하면 더 이상 발급할 수 없어요. 이미 발급된 쿠폰은 유효기간까지 그대로 사용할 수 있어요.', icon: 'trash' },
+  'coupon-template': { action: '비활성화', desc: '비활성화하면 신규 발급이 중단돼요. 이미 발급된 쿠폰은 유효기간까지 그대로 사용할 수 있어요.', icon: 'trash' },
 };
 
 export function ConfirmModal({

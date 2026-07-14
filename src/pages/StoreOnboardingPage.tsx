@@ -21,6 +21,7 @@ export function StoreOnboardingPage() {
   const [address, setAddress] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
   const [phone, setPhone] = useState('');
   const [avgPrice, setAvgPrice] = useState('');
   const [description, setDescription] = useState('');
@@ -36,13 +37,36 @@ export function StoreOnboardingPage() {
     clearErr(`menu-${index}-${key}`);
   }
 
+  function captureCurrentLocation() {
+    if (!navigator.geolocation) {
+      setErrors((current) => ({ ...current, location: '이 브라우저에서는 위치 확인을 지원하지 않아요' }));
+      return;
+    }
+    setLocationLoading(true);
+    clearErr('location');
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLatitude(String(coords.latitude));
+        setLongitude(String(coords.longitude));
+        setLocationLoading(false);
+      },
+      (error) => {
+        const message = error.code === error.PERMISSION_DENIED
+          ? '위치 권한을 허용해주세요'
+          : '현재 위치를 확인하지 못했어요. 잠시 후 다시 시도해주세요';
+        setErrors((current) => ({ ...current, location: message }));
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  }
+
   function submit() {
     const next: Record<string, string | undefined> = {
       name: v.required(name, '가게 이름'),
       phone: v.phone(phone),
       address: v.required(address, '주소'),
-      latitude: v.numberInRange(latitude, '위도', -90, 90),
-      longitude: v.numberInRange(longitude, '경도', -180, 180),
+      location: latitude && longitude ? undefined : '현재 위치를 확인해주세요',
       avgPrice: v.positiveNumber(avgPrice, '1인 평균 가격'),
       description: v.required(description, '가게 소개'),
       openTime: v.required(openTime, '영업 시작 시간'),
@@ -108,14 +132,12 @@ export function StoreOnboardingPage() {
         <Field label="주소" error={errors.address}>
           <input type="text" placeholder="대전시 유성구 ..." value={address} onChange={(e) => { setAddress(e.target.value); clearErr('address'); }} />
         </Field>
-        <div className="field-row">
-          <Field label="위도" error={errors.latitude}>
-            <input type="number" placeholder="36.3624" value={latitude} onChange={(e) => { setLatitude(e.target.value); clearErr('latitude'); }} />
-          </Field>
-          <Field label="경도" error={errors.longitude}>
-            <input type="number" placeholder="127.3568" value={longitude} onChange={(e) => { setLongitude(e.target.value); clearErr('longitude'); }} />
-          </Field>
-        </div>
+        <Field label="실제 가게 위치" error={errors.location} hint="기기의 위치 권한을 사용해 실제 좌표를 확인합니다.">
+          <button type="button" className="btn btn-outline" style={{ width: '100%' }} onClick={captureCurrentLocation} disabled={locationLoading}>
+            {locationLoading ? '현재 위치 확인 중...' : latitude && longitude ? '현재 위치 다시 가져오기' : '현재 위치 가져오기'}
+          </button>
+          {latitude && longitude && <div className="empty-inline" style={{ marginTop: 8 }}>현재 위치가 확인됐어요.</div>}
+        </Field>
         <Field label="1인 평균 가격 (원)" error={errors.avgPrice}>
           <input type="number" placeholder="9000" min={0} step={100} value={avgPrice} onChange={(e) => { setAvgPrice(e.target.value); clearErr('avgPrice'); }} />
         </Field>
