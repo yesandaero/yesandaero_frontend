@@ -1,5 +1,4 @@
 import { TAB_META } from '../data/constants';
-import { USE_MOCK } from '../api/client';
 import type { TabKey } from '../types';
 
 export function TopBar({ tab }: { tab: TabKey }) {

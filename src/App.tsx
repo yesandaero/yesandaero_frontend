@@ -5,7 +5,6 @@ import { AuthPage } from './pages/AuthPage';
 import { StoreOnboardingPage } from './pages/StoreOnboardingPage';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
-import { DashboardPage } from './pages/DashboardPage';
 import { StorePage } from './pages/StorePage';
 import { MenuPage } from './pages/MenuPage';
 import { CouponPage } from './pages/CouponPage';

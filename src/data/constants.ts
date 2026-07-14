@@ -28,7 +28,6 @@ export const NAV: { key: TabKey; label: string; iconName: IconName }[] = [
 /** 탭별 상단 제목/설명 */
 export const TAB_META: Record<TabKey, { title: string; sub: string }> = {
   store: { title: '가게 정보', sub: '가게 이름, 주소, 연락처를 관리해요' },
-    dashboard: { title: '대시보드', sub: '오늘 팔리는 메뉴와 가격을 한눈에 확인하세요' },
   menu: { title: '메뉴 관리', sub: '메뉴와 가격, 품절 여부를 관리해요' },
   coupon: { title: '쿠폰 관리', sub: '쿠폰 템플릿을 만들고 발급해요' },
   partnership: { title: '제휴 관리', sub: '다른 가게와의 제휴를 관리해요' },

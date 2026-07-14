@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Icon } from '../components/icons/Icon';
+import { Field } from '../components/Field';
 import { fmt } from '../utils/format';
+import * as v from '../utils/validation';
 import type { MenuItem } from '../types';
 
 interface MenuDraft {
@@ -9,6 +11,15 @@ interface MenuDraft {
   desc: string;
 }
 const emptyDraft: MenuDraft = { name: '', price: '', desc: '' };
+
+type MenuErrors = { name?: string; price?: string };
+
+function validateDraft(draft: MenuDraft): MenuErrors {
+  return {
+    name: v.required(draft.name, '메뉴명'),
+    price: v.positiveNumber(draft.price, '가격'),
+  };
+}
 
 export function MenuPage({
   menu,
@@ -25,20 +36,23 @@ export function MenuPage({
 }) {
   const [adding, setAdding] = useState(false);
   const [newDraft, setNewDraft] = useState<MenuDraft>(emptyDraft);
+  const [newErrors, setNewErrors] = useState<MenuErrors>({});
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState<MenuDraft>(emptyDraft);
+  const [editErrors, setEditErrors] = useState<MenuErrors>({});
 
   function startAdd() {
     setEditingId(null);
     setNewDraft(emptyDraft);
+    setNewErrors({});
     setAdding(true);
   }
   function saveNew() {
-    const name = newDraft.name.trim();
-    const price = Number(newDraft.price) || 0;
-    if (!name || price <= 0) return;
-    onAdd({ name, price, desc: newDraft.desc.trim() });
+    const errs = validateDraft(newDraft);
+    setNewErrors(errs);
+    if (v.hasErrors(errs)) return;
+    onAdd({ name: newDraft.name.trim(), price: Number(newDraft.price), desc: newDraft.desc.trim() });
     setAdding(false);
   }
 
@@ -46,12 +60,13 @@ export function MenuPage({
     setAdding(false);
     setEditingId(m.id);
     setEditDraft({ name: m.name, price: String(m.price), desc: m.desc });
+    setEditErrors({});
   }
   function saveEdit(id: number) {
-    const name = editDraft.name.trim();
-    const price = Number(editDraft.price) || 0;
-    if (!name || price <= 0) return;
-    onUpdate(id, { name, price, desc: editDraft.desc.trim() });
+    const errs = validateDraft(editDraft);
+    setEditErrors(errs);
+    if (v.hasErrors(errs)) return;
+    onUpdate(id, { name: editDraft.name.trim(), price: Number(editDraft.price), desc: editDraft.desc.trim() });
     setEditingId(null);
   }
 
@@ -72,18 +87,15 @@ export function MenuPage({
       {adding && (
         <div className="inline-form">
           <div className="field-row3">
-            <div className="field">
-              <label>메뉴명</label>
-              <input type="text" autoFocus placeholder="예: 순대국밥" value={newDraft.name} onChange={(e) => setNewDraft((d) => ({ ...d, name: e.target.value }))} />
-            </div>
-            <div className="field">
-              <label>가격 (원)</label>
-              <input type="number" placeholder="9000" min={0} step={100} value={newDraft.price} onChange={(e) => setNewDraft((d) => ({ ...d, price: e.target.value }))} />
-            </div>
-            <div className="field">
-              <label>설명 (선택)</label>
+            <Field label="메뉴명" error={newErrors.name}>
+              <input type="text" autoFocus placeholder="예: 순대국밥" value={newDraft.name} onChange={(e) => { setNewDraft((d) => ({ ...d, name: e.target.value })); setNewErrors((x) => ({ ...x, name: undefined })); }} />
+            </Field>
+            <Field label="가격 (원)" error={newErrors.price}>
+              <input type="number" placeholder="9000" min={0} step={100} value={newDraft.price} onChange={(e) => { setNewDraft((d) => ({ ...d, price: e.target.value })); setNewErrors((x) => ({ ...x, price: undefined })); }} />
+            </Field>
+            <Field label="설명 (선택)">
               <input type="text" placeholder="한 줄 설명" value={newDraft.desc} onChange={(e) => setNewDraft((d) => ({ ...d, desc: e.target.value }))} />
-            </div>
+            </Field>
           </div>
           <div className="form-actions">
             <button className="btn btn-outline btn-sm" onClick={() => setAdding(false)}>취소</button>
@@ -97,18 +109,15 @@ export function MenuPage({
           m.id === editingId ? (
             <div className="inline-form" key={m.id}>
               <div className="field-row3">
-                <div className="field">
-                  <label>메뉴명</label>
-                  <input type="text" value={editDraft.name} onChange={(e) => setEditDraft((d) => ({ ...d, name: e.target.value }))} />
-                </div>
-                <div className="field">
-                  <label>가격 (원)</label>
-                  <input type="number" min={0} step={100} value={editDraft.price} onChange={(e) => setEditDraft((d) => ({ ...d, price: e.target.value }))} />
-                </div>
-                <div className="field">
-                  <label>설명 (선택)</label>
+                <Field label="메뉴명" error={editErrors.name}>
+                  <input type="text" value={editDraft.name} onChange={(e) => { setEditDraft((d) => ({ ...d, name: e.target.value })); setEditErrors((x) => ({ ...x, name: undefined })); }} />
+                </Field>
+                <Field label="가격 (원)" error={editErrors.price}>
+                  <input type="number" min={0} step={100} value={editDraft.price} onChange={(e) => { setEditDraft((d) => ({ ...d, price: e.target.value })); setEditErrors((x) => ({ ...x, price: undefined })); }} />
+                </Field>
+                <Field label="설명 (선택)">
                   <input type="text" value={editDraft.desc} onChange={(e) => setEditDraft((d) => ({ ...d, desc: e.target.value }))} />
-                </div>
+                </Field>
               </div>
               <div className="form-actions">
                 <button className="btn btn-outline btn-sm" onClick={() => setEditingId(null)}>취소</button>

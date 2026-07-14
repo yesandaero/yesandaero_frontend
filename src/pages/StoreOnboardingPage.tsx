@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Icon } from '../components/icons/Icon';
+import { Field } from '../components/Field';
 import { STORE_CATEGORIES } from '../data/constants';
 import { useApp } from '../state/context';
+import * as v from '../utils/validation';
 import type { StoreCategory } from '../api/types';
 
 export function StoreOnboardingPage() {
@@ -15,25 +17,28 @@ export function StoreOnboardingPage() {
   const [phone, setPhone] = useState('');
   const [avgPrice, setAvgPrice] = useState('');
   const [description, setDescription] = useState('');
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+  const clearErr = (key: string) => setErrors((e) => ({ ...e, [key]: undefined }));
 
   function submit() {
-    const lat = Number(latitude);
-    const lng = Number(longitude);
-    const price = Number(avgPrice);
-    if (!name.trim() || !address.trim() || !phone.trim() || !avgPrice || !latitude || !longitude) {
-      setError('필수 항목을 모두 입력해주세요');
-      return;
-    }
-    setError('');
+    const next = {
+      name: v.required(name, '가게 이름'),
+      phone: v.phone(phone),
+      address: v.required(address, '주소'),
+      latitude: v.numberInRange(latitude, '위도', -90, 90),
+      longitude: v.numberInRange(longitude, '경도', -180, 180),
+      avgPrice: v.positiveNumber(avgPrice, '1인 평균 가격'),
+    };
+    setErrors(next);
+    if (v.hasErrors(next)) return;
     registerStore({
       name: name.trim(),
       category,
       address: address.trim(),
-      latitude: lat,
-      longitude: lng,
+      latitude: Number(latitude),
+      longitude: Number(longitude),
       phone: phone.trim(),
-      avgPrice: price,
+      avgPrice: Number(avgPrice),
       description: description.trim(),
     });
   }
@@ -47,48 +52,38 @@ export function StoreOnboardingPage() {
           <div className="t2">손님을 맞이할 가게 정보를 입력해주세요</div>
         </div>
 
-        {error && <div className="auth-note" style={{ color: 'var(--danger)' }}>{error}</div>}
-
-        <div className="field">
-          <label>가게 이름</label>
-          <input type="text" placeholder="예: 이모네 국밥" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
+        <Field label="가게 이름" error={errors.name}>
+          <input type="text" placeholder="예: 이모네 국밥" value={name} onChange={(e) => { setName(e.target.value); clearErr('name'); }} />
+        </Field>
         <div className="field-row">
-          <div className="field">
-            <label>카테고리</label>
+          <Field label="카테고리">
             <select value={category} onChange={(e) => setCategory(e.target.value as StoreCategory)}>
               {STORE_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </select>
-          </div>
-          <div className="field">
-            <label>전화번호</label>
-            <input type="text" placeholder="042-000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
+          </Field>
+          <Field label="전화번호" error={errors.phone}>
+            <input type="text" placeholder="042-000-0000" value={phone} onChange={(e) => { setPhone(e.target.value); clearErr('phone'); }} />
+          </Field>
         </div>
-        <div className="field">
-          <label>주소</label>
-          <input type="text" placeholder="대전시 유성구 ..." value={address} onChange={(e) => setAddress(e.target.value)} />
-        </div>
+        <Field label="주소" error={errors.address}>
+          <input type="text" placeholder="대전시 유성구 ..." value={address} onChange={(e) => { setAddress(e.target.value); clearErr('address'); }} />
+        </Field>
         <div className="field-row">
-          <div className="field">
-            <label>위도</label>
-            <input type="number" placeholder="36.3624" value={latitude} onChange={(e) => setLatitude(e.target.value)} />
-          </div>
-          <div className="field">
-            <label>경도</label>
-            <input type="number" placeholder="127.3568" value={longitude} onChange={(e) => setLongitude(e.target.value)} />
-          </div>
+          <Field label="위도" error={errors.latitude}>
+            <input type="number" placeholder="36.3624" value={latitude} onChange={(e) => { setLatitude(e.target.value); clearErr('latitude'); }} />
+          </Field>
+          <Field label="경도" error={errors.longitude}>
+            <input type="number" placeholder="127.3568" value={longitude} onChange={(e) => { setLongitude(e.target.value); clearErr('longitude'); }} />
+          </Field>
         </div>
-        <div className="field">
-          <label>1인 평균 가격 (원)</label>
-          <input type="number" placeholder="9000" min={0} step={100} value={avgPrice} onChange={(e) => setAvgPrice(e.target.value)} />
-        </div>
-        <div className="field">
-          <label>가게 소개 <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(선택)</span></label>
+        <Field label="1인 평균 가격 (원)" error={errors.avgPrice}>
+          <input type="number" placeholder="9000" min={0} step={100} value={avgPrice} onChange={(e) => { setAvgPrice(e.target.value); clearErr('avgPrice'); }} />
+        </Field>
+        <Field label={<>가게 소개 <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(선택)</span></>}>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
-        </div>
+        </Field>
 
         <button className="btn btn-primary" style={{ width: '100%' }} onClick={submit}>가게 등록하고 시작하기</button>
         <div className="auth-foot"><span onClick={logout}>다른 계정으로 로그인</span></div>

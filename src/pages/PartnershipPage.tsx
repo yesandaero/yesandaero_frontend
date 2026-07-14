@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/icons/Icon';
+import { Field } from '../components/Field';
 import { useApp } from '../state/context';
+import * as v from '../utils/validation';
 import type { Partnership, PartnershipStatus } from '../api/types';
 
 function statusMeta(status: PartnershipStatus): { label: string; badgeClass: string } {
@@ -47,6 +49,7 @@ export function PartnershipPage() {
   const { partnerships, partnershipsLoading, loadPartnerships, requestPartnership } = useApp();
   const [adding, setAdding] = useState(false);
   const [receiverStoreId, setReceiverStoreId] = useState('');
+  const [idError, setIdError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     loadPartnerships();
@@ -54,9 +57,10 @@ export function PartnershipPage() {
   }, []);
 
   function submitRequest() {
-    const id = Number(receiverStoreId);
-    if (!id || id <= 0) return;
-    requestPartnership(id);
+    const err = v.positiveInteger(receiverStoreId, '상대 가게 ID');
+    setIdError(err);
+    if (err) return;
+    requestPartnership(Number(receiverStoreId));
     setReceiverStoreId('');
     setAdding(false);
   }
@@ -83,12 +87,10 @@ export function PartnershipPage() {
       {adding && (
         <div className="inline-form">
           <div className="field-row">
-            <div className="field">
-              <label>상대 가게 ID</label>
-              <input type="number" min={1} placeholder="12" value={receiverStoreId} onChange={(e) => setReceiverStoreId(e.target.value)} />
-            </div>
+            <Field label="상대 가게 ID" error={idError} hint={idError ? undefined : '가게 검색 기능은 추후 연동 예정이라 지금은 가게 ID로 요청해요.'}>
+              <input type="number" min={1} placeholder="12" value={receiverStoreId} onChange={(e) => { setReceiverStoreId(e.target.value); setIdError(undefined); }} />
+            </Field>
           </div>
-          <div className="empty-inline">가게 검색 기능은 추후 연동 예정이라 지금은 가게 ID로 요청해요.</div>
           <div className="form-actions">
             <button className="btn btn-outline btn-sm" onClick={() => setAdding(false)}>취소</button>
             <button className="btn btn-primary btn-sm" onClick={submitRequest}>요청 보내기</button>
